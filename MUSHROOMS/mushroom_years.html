@@ -9,7 +9,44 @@
         integrity="sha512-QVftwZFqvtRNi0ZyCtsznlKSWOStnDORoefr1enyq5mVL4tmKB3S/EnC3rRJcxCPavG10IcrVGSmPh6Qw5lwrg=="
         crossorigin=""></script>
     <script src="mushrooms.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css"/>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
     <style>
+       #species-controls {
+    position: absolute;
+    bottom: auto;
+    right: 10px;
+    top: 30px;      
+    left: auto;    
+    background: rgba(245, 240, 232, 0.95);
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    z-index: 1000;
+    font-size: 0.82em;
+    font-family: Georgia, serif;
+    max-height: 55vh;
+    overflow-y: auto;
+}
+
+#species-controls h4 {
+    margin: 0 0 8px 0;
+    font-size: 0.9em;
+    color: #555;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 4px;
+}
+
+.species-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 0;
+    cursor: pointer;
+}
+
+.species-toggle input { cursor: pointer; }
         body { margin: 0; background: #f5f0e8; color: #333; font-family: Georgia, serif; }
 
         #mapid { width: 100vw; height: 88vh; }
@@ -75,110 +112,203 @@
 </div>
 
 <div id="mapid"></div>
-<div id="legend"></div>
+<div id="species-controls"></div>
 
 <script>
-    const speciesConfig = {
-        "Trametes versicolor":      { color: "#c07a2f", shape: "bracket"  },
-        "Lactarius indigo":         { color: "#3a6fbf", shape: "round"    },
-        "Laetiporus sulphureus":    { color: "#d4560a", shape: "bracket"  },
-        "Pleurotus ostreatus":      { color: "#5aab7a", shape: "oyster"   },
-        "Armillaria mellea":        { color: "#9b6bb5", shape: "round"    },
-        "Cantharellus cibarius":    { color: "#c9a800", shape: "funnel"   },
-        "Amanita verna":            { color: "#aaaaaa", shape: "round"    },
-        "Coprinopsis atramentaria": { color: "#555555", shape: "tall"     },
-        "Panus neostrigosus":       { color: "#c4546e", shape: "round"    },
-        "Porodaedalea pini":        { color: "#7a4f2e", shape: "bracket"  },
-        "Calvatia gigantea":        { color: "#999999", shape: "puffball" }
-    };
+const speciesConfig = {
+    "Trametes versicolor":      { color: "#c07a2f" },
+    "Lactarius indigo":         { color: "#3a6fbf" },
+    "Laetiporus sulphureus":    { color: "#d4560a" },
+    "Pleurotus ostreatus":      { color: "#5aab7a" },
+    "Armillaria mellea":        { color: "#9b6bb5" },
+    "Cantharellus cibarius":    { color: "#c9a800" },
+    "Amanita verna":            { color: "#aaaaaa" },
+    "Coprinopsis atramentaria": { color: "#555555" },
+    "Panus neostrigosus":       { color: "#c4546e" },
+    "Porodaedalea pini":        { color: "#7a4f2e" },
+    "Calvatia gigantea":        { color: "#999999" }
+};
 
-    function mushroomSVG(shape, color) {
-        const svgs = {
-            round: `
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="22" viewBox="0 0 20 22">
-                    <ellipse cx="10" cy="9" rx="9" ry="7" fill="${color}" stroke="#fff" stroke-width="1.2"/>
-                    <rect x="7.5" y="14" width="5" height="7" rx="1.5" fill="${color}" stroke="#fff" stroke-width="1.2"/>
-                </svg>`,
-            tall: `
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="26" viewBox="0 0 16 26">
-                    <ellipse cx="8" cy="7" rx="7" ry="5" fill="${color}" stroke="#fff" stroke-width="1.2"/>
-                    <rect x="5.5" y="11" width="5" height="13" rx="1.5" fill="${color}" stroke="#fff" stroke-width="1.2"/>
-                </svg>`,
-            funnel: `
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="20" viewBox="0 0 22 20">
-                    <path d="M1 6 Q11 0 21 6 Q16 14 11 15 Q6 14 1 6Z" fill="${color}" stroke="#fff" stroke-width="1.2"/>
-                    <rect x="8.5" y="14" width="5" height="5" rx="1.5" fill="${color}" stroke="#fff" stroke-width="1.2"/>
-                </svg>`,
-            bracket: `
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="18" viewBox="0 0 22 18">
-                    <path d="M2 14 Q2 4 18 6 Q20 12 14 15 Q8 18 2 14Z" fill="${color}" stroke="#fff" stroke-width="1.2"/>
-                </svg>`,
-            oyster: `
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="18" viewBox="0 0 22 18">
-                    <path d="M2 10 Q6 2 14 2 Q20 2 20 10 Q20 16 11 17 Q2 16 2 10Z" fill="${color}" stroke="#fff" stroke-width="1.2"/>
-                    <rect x="9" y="15" width="4" height="4" rx="1" fill="${color}" stroke="#fff" stroke-width="1.2"/>
-                </svg>`,
-            puffball: `
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="20" viewBox="0 0 22 20">
-                    <circle cx="11" cy="9" r="8" fill="${color}" stroke="#fff" stroke-width="1.2"/>
-                    <ellipse cx="11" cy="17" rx="5" ry="2" fill="${color}" stroke="#fff" stroke-width="1.2"/>
-                </svg>`
-        };
-        return svgs[shape] || svgs.round;
-    }
+var activeSpecies = new Set(Object.keys(speciesConfig));
 
-    function makeIcon(species) {
-        const cfg = speciesConfig[species] || { color: "#999", shape: "round" };
+function makeIcon(species) {
+    const cfg = speciesConfig[species] || { color: "#999" };
+    return L.divIcon({
+        className: "",
+        html: `<div style="
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: ${cfg.color};
+            border: 1.5px solid #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        "></div>`,
+        iconAnchor: [6, 6]
+    });
+}
+
+// precompute totals per species from the full dataset
+const speciesTotals = {};
+mushroom.features.forEach(function(f) {
+    var sp = f.properties.species;
+    speciesTotals[sp] = (speciesTotals[sp] || 0) + 1;
+});
+
+const controlsEl = document.getElementById("species-controls");
+controlsEl.innerHTML = `<h4>Species</h4>
+    <label class="species-toggle">
+        <input type="checkbox" id="toggle-all" checked>
+        <i>Toggle all</i>
+    </label>
+    <hr style="margin:4px 0; border-color:#ddd;">` +
+    Object.entries(speciesConfig).map(([name, cfg]) => `
+    <label class="species-toggle">
+        <input type="checkbox" class="sp-checkbox" data-species="${name}" checked>
+        <span style="display:flex;align-items:center;gap:8px;">
+            <div style="
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                background: ${cfg.color};
+                border: 1.5px solid #aaa;
+                flex-shrink: 0;
+            "></div>
+            <span>
+                <i>${name}</i><br>
+                <span style="font-size:0.78em;color:#888;">
+                    ${(speciesTotals[name] || 0).toLocaleString()} total records
+                </span>
+            </span>
+        </span>
+    </label>`
+).join("");
+
+document.getElementById("toggle-all").addEventListener("change", function() {
+    const checked = this.checked;
+    document.querySelectorAll(".sp-checkbox").forEach(cb => {
+        cb.checked = checked;
+        if (checked) activeSpecies.add(cb.dataset.species);
+        else activeSpecies.delete(cb.dataset.species);
+    });
+    renderMap();
+});
+
+document.querySelectorAll(".sp-checkbox").forEach(cb => {
+    cb.addEventListener("change", function() {
+        if (this.checked) activeSpecies.add(this.dataset.species);
+        else activeSpecies.delete(this.dataset.species);
+
+        const all = document.querySelectorAll(".sp-checkbox");
+        const allChecked = [...all].every(c => c.checked);
+        const noneChecked = [...all].every(c => !c.checked);
+        document.getElementById("toggle-all").indeterminate = !allChecked && !noneChecked;
+        document.getElementById("toggle-all").checked = allChecked;
+
+        renderMap();
+    });
+});
+
+
+// --- Map ---
+var map = L.map('mapid').setView([33.5, -84.0], 6);
+
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+	attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community'
+}).addTo(map);
+
+var mushroomLayer = L.markerClusterGroup({
+    maxClusterRadius: 40,
+    iconCreateFunction: function(cluster) {
+        var count = cluster.getChildCount();
+        var size = count < 10 ? 30 : count < 100 ? 38 : 46;
         return L.divIcon({
+            html: `<div style="
+                background: #c07a2f;
+                color: white;
+                border-radius: 50%;
+                width: ${size}px;
+                height: ${size}px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-family: Georgia, serif;
+                font-size: 0.8em;
+                border: 2px solid #fff;
+                box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+            ">${count}</div>`,
             className: "",
-            html: mushroomSVG(cfg.shape, cfg.color),
-            iconAnchor: [11, 11]
+            iconSize: [size, size]
         });
     }
+}).addTo(map);
 
-    // --- Legend with actual SVG symbols ---
-    const legendEl = document.getElementById("legend");
-    legendEl.innerHTML = `<h4>Species</h4>` +
-        Object.entries(speciesConfig).map(([name, cfg]) => `
-            <div class="legend-item">
-                <div class="legend-icon">${mushroomSVG(cfg.shape, cfg.color)}</div>
-                <i>${name}</i>
-            </div>`
-        ).join("");
+var slider  = document.getElementById("myRange");
+var info    = document.getElementById("info");
+var currentYear = 1899;
 
-    // --- Map ---
-    var map = L.map('mapid').setView([33.5, -84.0], 6);
+function renderMap() {
+    var filtered = mushroom.features.filter(function(f) {
+        return parseInt(f.properties.year) === currentYear &&
+               activeSpecies.has(f.properties.species);
+    });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map);
+    info.textContent = currentYear + " \u00a0|\u00a0 " + filtered.length + " records";
 
-    var mushroomLayer = L.layerGroup().addTo(map);
-    var slider = document.getElementById("myRange");
-    var info   = document.getElementById("info");
+    // remove old layer entirely
+    map.removeLayer(mushroomLayer);
 
-    slider.oninput = function() {
-        var year = parseInt(this.value);
-        var filtered = mushroom.features.filter(function(f) {
-            return f.properties.year === year;
+    // decide whether to cluster based on point count and species count
+    if (filtered.length > 200 && activeSpecies.size > 1) {
+        mushroomLayer = L.markerClusterGroup({
+            maxClusterRadius: 40,
+            iconCreateFunction: function(cluster) {
+                var count = cluster.getChildCount();
+                var size = count < 10 ? 30 : count < 100 ? 38 : 46;
+                return L.divIcon({
+                    html: `<div style="
+                        background: #c07a2f;
+                        color: white;
+                        border-radius: 50%;
+                        width: ${size}px;
+                        height: ${size}px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-family: Georgia, serif;
+                        font-size: 0.8em;
+                        border: 2px solid #fff;
+                        box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+                    ">${count}</div>`,
+                    className: "",
+                    iconSize: [size, size]
+                });
+            }
         });
+    } else {
+        mushroomLayer = L.layerGroup();
+    }
 
-        info.textContent = year + " \u00a0|\u00a0 " + filtered.length + " records";
-        mushroomLayer.clearLayers();
+    mushroomLayer.addTo(map);
 
-        filtered.forEach(function(f) {
-            var coords = f.geometry.coordinates;
-            var props  = f.properties;
-            L.marker([coords[1], coords[0]], { icon: makeIcon(props.species) })
-             .bindPopup(`<b><i>${props.species}</i></b><br>Year: ${props.year}<br>${props.stateProvince}`)
-             .addTo(mushroomLayer);
-        });
-    };
+    filtered.forEach(function(f) {
+        var coords = f.geometry.coordinates;
+        var props  = f.properties;
+        L.marker([coords[1], coords[0]], { icon: makeIcon(props.species) })
+         .bindPopup(`<b><i>${props.species}</i></b><br>Year: ${props.year}<br>${props.stateProvince}`)
+         .addTo(mushroomLayer);
+    });
+}
 
-    window.onload = function() {
-        slider.value = 1899;
-        slider.oninput();
-    };
+slider.oninput = function() {
+    currentYear = parseInt(this.value);
+    renderMap();
+};
+
+window.onload = function() {
+    slider.value = 1899;
+    currentYear = 1899;
+    renderMap();
+};
 </script>
 </body>
 </html>
