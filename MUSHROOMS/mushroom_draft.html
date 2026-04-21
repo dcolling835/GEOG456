@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mushroom Movement</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.4.0/dist/leaflet.css"
+        integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA=="
+        crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js"
+        integrity="sha512-QVftwZFqvtRNi0ZyCtsznlKSWOStnDORoefr1enyq5mVL4tmKB3S/EnC3rRJcxCPavG10IcrVGSmPh6Qw5lwrg=="
+        crossorigin=""></script>
+    <script src="mushrooms.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css"/>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+
+    <style>
+        body { margin: 0; background: #f5f0e8; color: #333; font-family: Georgia, serif; }
+
+        #mapid { width: 100vw; height: 88vh; }
+
+        #controls {
+            padding: 10px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: #f5f0e8;
+            border-bottom: 1px solid #ddd;
+        }
+
+        #controls label { font-size: 0.95em; color: #666; }
+        #myRange { width: 500px; accent-color: #7a5c2e; }
+        #info { font-size: 0.95em; color: #7a5c2e; font-weight: bold; }
+
+        #species-controls {
+            position: absolute;
+            bottom: 30px;
+            right: 10px;
+            top: auto;
+            left: auto;
+            background: rgba(245, 240, 232, 0.95);
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            z-index: 1000;
+            font-size: 0.82em;
+            font-family: Georgia, serif;
+            max-height: 55vh;
+            overflow-y: auto;
+        }
+
+        #species-controls h4 {
+            margin: 0 0 8px 0;
+            font-size: 0.9em;
+            color: #555;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 4px;
+        }
+
+        .species-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 4px 0;
+            cursor: pointer;
+        }
+
+        .species-toggle input { cursor: pointer; }
+
+        #species-popup {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #f5f0e8;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            padding: 20px;
+            z-index: 2000;
+            width: 340px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            font-family: Georgia, serif;
+        }
+
+        #species-popup img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+
+        #species-popup h3 {
+            margin: 0 0 2px 0;
+            font-size: 1.1em;
+            color: #3a2a1a;
+        }
+
+        #species-popup .scientific {
+            font-style: italic;
+            font-size: 0.82em;
+            color: #888;
+            margin-bottom: 10px;
+        }
+
+        #species-popup p {
+            font-size: 0.85em;
+            line-height: 1.6;
+            color: #444;
+            margin: 0;
+        }
+
+        #species-popup .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 14px;
+            font-size: 1.2em;
+            cursor: pointer;
+            color: #888;
+            background: none;
+            border: none;
+            font-family: Georgia, serif;
+        }
+
+        #species-popup .close-btn:hover { color: #333; }
+
+        #popup-overlay {
+            display: none;
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.3);
+            z-index: 1999;
+        }
+    </style>
+</head>
+<body>
+
+<div id="controls">
+    <label>Year:</label>
+    <input type="range" min="1899" max="2025" value="1899" id="myRange">
+    <span id="info">1899 &nbsp;|&nbsp; 0 records</span>
+</div>
+
+<div id="mapid"></div>
+<div id="species-controls"></div>
+
+<div id="popup-overlay" onclick="closePopup()"></div>
+<div id="species-popup">
+    <button class="close-btn" onclick="closePopup()">✕</button>
+    <img id="popup-img" src="" alt="">
+    <h3 id="popup-common"></h3>
+    <div class="scientific" id="popup-scientific"></div>
+    <p id="popup-desc"></p>
+</div>
+
+<script>
+// ============================================================
+// EDIT THIS SECTION — one entry per species
+// image: path to your image file e.g. "images/turkey_tail.jpg"
+// description: text that appears in the popup
+// ============================================================
+const speciesConfig = {
+    "Trametes versicolor": {
+        color: "#c07a2f",
+        common: "Turkey Tail",
+        image: "https://fungi.com/cdn/shop/articles/image1_15bd9cc0-b2f9-4cda-a1b2-c1712837456d.jpg?v=1734637386&width=1920",      
+        description: "Saprobic on the deadwood of hardwood trees. Found abundantly in North American woods. There are no know medicinal or edible properties, but is regarded as a symbol of longevity and good fortune in traditional Chinese and Japanese practices." 
+    },
+    "Lactarius indigo": {
+        color: "#3a6fbf",
+        common: "Indigo Milk Cap",
+        image: "https://cdn.shopify.com/s/files/1/0717/5752/9366/files/Lactarius_indigo_Indigo_Milk_Cap.jpg?v=1759467186",
+        description: "Mycorrhizal with oak and pine trees in the southwestern United States. These are edible and sometimes used as a natural dye. "
+    },
+    "Laetiporus sulphureus": {
+        color: "#d4560a",
+        common: "Chicken of the Woods",
+        image: "https://cdn.zmescience.com/wp-content/uploads/2018/08/Laetiporus_sulphureus_JPG01.jpg",
+        description: "Parasitic and saprobic on living or dead hardwoods, especially oak trees, throughout North America. Widely foraged for edible properties."
+    },
+    "Pleurotus ostreatus": {
+        color: "#5aab7a",
+        common: "Oyster Mushroom",
+        image: "https://img.hobbyfarms.com/shutterstock_514306066.jpg",
+        description: "Saprobic on dead hardwoods thoroughout North America. Known to be edible, although some people experience allergic reactions."
+    },
+    "Armillaria mellea": {
+        color: "#9b6bb5",
+        common: "Honey Fungus",
+        image: "https://www.theenglishgarden.co.uk/_gatsby/file/2a8e79accb0d7497d64529414c846a32/shutterstock_2483292729.jpg",
+        description: "Parasitic on hardwoods and conifers, typically in southeastern North America and California. Are edible when cooked thoroughly "
+    },
+   "Cantharellus cibarius": {
+    color: "#c9a800",
+    common: "Golden Chanterelle",
+    image: "https://cdn.shopify.com/s/files/1/0558/2661/2279/files/image-gen_16.png?v=1769679443",
+    description: "Mycorrhizal with hardwoods and conifers throughout temperate North America. Commonly found in mossy forests in summer and fall. Highly prized edible mushroom with a fruity aroma, widely foraged and used in cooking."
+    },
+    "Amanita verna": {
+    color: "#aaaaaa",
+    common: "Destroying Angel",
+    image: "https://upload.wikimedia.org/wikipedia/commons/a/a3/Amanita_bisporigera_17932.jpg",
+    description: "Mycorrhizal with hardwood trees in eastern North America, typically found in summer and fall. Contains potent amatoxins and is among the most poisonous mushrooms known. Ingestion can cause severe liver failure and is often fatal."
+    },
+
+    "Coprinopsis atramentaria": {
+    color: "#555555",
+    common: "Inky Cap",
+    image: "https://preview.redd.it/coprinus-comatus-shaggy-ink-cap-mushroom-drips-thick-black-v0-fg1tr1nlpdi51.jpg?auto=webp&s=ca1210fd64c5799eed9bd93956850561e2e09e1d",
+    description: "Saprobic on disturbed ground, lawns, and urban areas across North America. Often appears in clusters after rain. Edible when young, but reacts dangerously with alcohol, causing flushing and illness."
+    },
+
+    "Panus neostrigosus": {
+    color: "#c4546e",
+    common: "Hairy Oyster Mushroom",
+    image: "https://www.minnesotaseasons.com/Fungi/Large/H/Hairy_Oyster_Mushroom_01.jpg",
+    description: "Saprobic on dead hardwood, especially oak, in eastern North America. Recognized by its hairy cap and tough texture. Not considered edible due to its leathery consistency."
+    },
+
+    "Porodaedalea pini": {
+    color: "#7a4f2e",
+    common: "Pine Conk",
+    image: "https://www.naturallynorthidaho.com/wp-content/uploads/2012/12/Conk-1521.jpg",
+    description: "Parasitic and saprobic on conifers, especially pine, across northern North America. Causes heart rot in living trees and persists on dead wood. Not edible, but plays an important ecological role in forest decomposition."
+    },
+
+    "Calvatia gigantea": {
+    color: "#999999",
+    common: "Giant Puffball",
+    image: "https://images.squarespace-cdn.com/content/v1/510c1493e4b0d7f206ce8b44/1382824507700-A9FCB3IZIXAWX70CU0WW/puffballs++10-12-13.JPG",
+    description: "Saprobic in open fields, meadows, and forest edges throughout North America. Produces large white fruiting bodies in late summer and fall. Edible when young and firm inside, before spores begin to develop."
+    }
+};
+
+
+var activeSpecies = new Set(Object.keys(speciesConfig));
+
+function makeIcon(species) {
+    const cfg = speciesConfig[species] || { color: "#999" };
+    return L.divIcon({
+        className: "",
+        html: `<div style="
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: ${cfg.color};
+            border: 1.5px solid #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        "></div>`,
+        iconAnchor: [6, 6]
+    });
+}
+
+function openPopup(scientificName) {
+    const cfg = speciesConfig[scientificName];
+    if (!cfg) return;
+    document.getElementById("popup-img").src = cfg.image;
+    document.getElementById("popup-common").textContent = cfg.common;
+    document.getElementById("popup-scientific").textContent = scientificName;
+    document.getElementById("popup-desc").textContent = cfg.description;
+    document.getElementById("species-popup").style.display = "block";
+    document.getElementById("popup-overlay").style.display = "block";
+}
+
+function closePopup() {
+    document.getElementById("species-popup").style.display = "none";
+    document.getElementById("popup-overlay").style.display = "none";
+}
+
+const speciesTotals = {};
+mushroom.features.forEach(function(f) {
+    var sp = f.properties.species;
+    speciesTotals[sp] = (speciesTotals[sp] || 0) + 1;
+});
+
+const controlsEl = document.getElementById("species-controls");
+controlsEl.innerHTML = `<h4>Species</h4>
+    <label class="species-toggle">
+        <input type="checkbox" id="toggle-all" checked>
+        <i>Toggle all</i>
+    </label>
+    <hr style="margin:4px 0; border-color:#ddd;">` +
+    Object.entries(speciesConfig).map(([name, cfg]) => `
+    <label class="species-toggle">
+        <input type="checkbox" class="sp-checkbox" data-species="${name}" checked>
+        <span style="display:flex;align-items:center;gap:8px;flex:1;">
+            <div style="
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                background: ${cfg.color};
+                border: 1.5px solid #aaa;
+                flex-shrink: 0;
+            "></div>
+            <span style="flex:1;">
+                ${cfg.common}<br>
+                <span style="font-size:0.78em;color:#888;">
+                    ${(speciesTotals[name] || 0).toLocaleString()} total records
+                </span>
+            </span>
+            <span onclick="event.preventDefault(); openPopup('${name}')"
+                  style="cursor:pointer;color:#7a5c2e;font-size:1em;padding:2px 6px;"
+                  title="Learn more">ⓘ</span>
+        </span>
+    </label>`
+).join("");
+
+document.getElementById("toggle-all").addEventListener("change", function() {
+    const checked = this.checked;
+    document.querySelectorAll(".sp-checkbox").forEach(cb => {
+        cb.checked = checked;
+        if (checked) activeSpecies.add(cb.dataset.species);
+        else activeSpecies.delete(cb.dataset.species);
+    });
+    renderMap();
+});
+
+document.querySelectorAll(".sp-checkbox").forEach(cb => {
+    cb.addEventListener("change", function() {
+        if (this.checked) activeSpecies.add(this.dataset.species);
+        else activeSpecies.delete(this.dataset.species);
+
+        const all = document.querySelectorAll(".sp-checkbox");
+        const allChecked = [...all].every(c => c.checked);
+        const noneChecked = [...all].every(c => !c.checked);
+        document.getElementById("toggle-all").indeterminate = !allChecked && !noneChecked;
+        document.getElementById("toggle-all").checked = allChecked;
+
+        renderMap();
+    });
+});
+
+var map = L.map('mapid').setView([33.5, -84.0], 6);
+
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles &copy; Esri'
+}).addTo(map);
+
+var mushroomLayer = L.layerGroup().addTo(map);
+var slider  = document.getElementById("myRange");
+var info    = document.getElementById("info");
+var currentYear = 1899;
+
+function renderMap() {
+    var filtered = mushroom.features.filter(function(f) {
+        return parseInt(f.properties.year) === currentYear &&
+               activeSpecies.has(f.properties.species);
+    });
+
+    info.textContent = currentYear + " \u00a0|\u00a0 " + filtered.length + " records";
+
+    map.removeLayer(mushroomLayer);
+
+    if (filtered.length > 200 && activeSpecies.size > 1) {
+        mushroomLayer = L.markerClusterGroup({
+            maxClusterRadius: 40,
+            iconCreateFunction: function(cluster) {
+                var count = cluster.getChildCount();
+                var size = count < 10 ? 30 : count < 100 ? 38 : 46;
+                return L.divIcon({
+                    html: `<div style="
+                        background: #c07a2f;
+                        color: white;
+                        border-radius: 50%;
+                        width: ${size}px;
+                        height: ${size}px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-family: Georgia, serif;
+                        font-size: 0.8em;
+                        border: 2px solid #fff;
+                        box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+                    ">${count}</div>`,
+                    className: "",
+                    iconSize: [size, size]
+                });
+            }
+        });
+    } else {
+        mushroomLayer = L.layerGroup();
+    }
+
+    mushroomLayer.addTo(map);
+
+    filtered.forEach(function(f) {
+        var coords = f.geometry.coordinates;
+        var props  = f.properties;
+        L.marker([coords[1], coords[0]], { icon: makeIcon(props.species) })
+         .bindPopup(`
+            <b>${speciesConfig[props.species]?.common || props.species}</b><br>
+            <i style="font-size:0.85em;color:#888;">${props.species}</i><br>
+            Year: ${props.year}<br>
+            ${props.stateProvince}
+         `)
+         .addTo(mushroomLayer);
+    });
+}
+
+slider.oninput = function() {
+    currentYear = parseInt(this.value);
+    renderMap();
+};
+
+window.onload = function() {
+    slider.value = 1899;
+    currentYear = 1899;
+    renderMap();
+};
+</script>
+</body>
+</html>
