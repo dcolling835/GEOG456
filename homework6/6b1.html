@@ -1,0 +1,74 @@
+<htmL>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+          /* Most CSS created using ChatGPT */
+        body {
+
+          margin: 0; /* Remove default margin */
+          padding: 0; /* Remove default padding */
+          overflow-x: hidden; /* Prevent overflow: something you might want to have for maps on a cellphone screen */
+          background-color: black; /* Just for demonstration */
+          color: white;
+          
+        }
+        .row {
+          /* width: 600px;  */
+          width: 95vw;
+          background-color: rgb(28, 28, 28); /* Just for demonstration */
+          padding: 20px;
+          border: 1px solid black;
+          display: flex;
+        }
+
+        p {
+          padding-top: 1%;
+          padding-right: 5%;
+          padding-left: 5%;
+        }
+        
+        /* Creates two equal columns */
+        .column {
+          flex: 33%;
+          padding: 10px;
+          overflow: hidden; /* Prevent overflow */
+        }
+        </style>
+        </head>
+
+<body>
+    <h1>Yellowstone Lake, Wyoming</h1>
+    <div class="row">
+        <div class="column">
+          <img  src="YellowstoneLake_2006.png" alt="1933" style="width:100%">
+        </div>
+        <div class="column">
+            <img  src="YellowstoneLake_2015.png" alt="1983" style="width:100%">
+        </div>
+         <div class="column">
+            <img  src="YellowstoneLake_2019.png" alt="1983" style="width:100%">
+        </div>
+      </div>
+
+
+    <p> Yellowstone Lake, located in northwestern Wyoming, is the largest high elevation lake in North America. The lake is in the heart of Yellowstone National Park, one of the most visited attractions in the United States, and is constantly vulnerable to human interference despite being on protected land.
+        I chose to visualize change in this area from 2006 to 2019, specifically to observe forest recovery periods following massive wildfires at the end of the 20th century. The 2006 image acts as a baseline, with the lake's shoreline vegetation relatively intact but burn scars are still prominent in the surrounding area. 
+    The 2015 image shows some forest regrowth, but multiple patches of brown or gray that were not previously there. Upon further investigation, I discovered that 2015 was among peak years for Mountain Pine Beetle infestations across the park, a species that greatly increases tree mortality. I speculate that these patches of 
+brown or gray are likely areas that were impacted by the infestation and died or declined in abundance. Lastly, the 2019 image shows a large amount of vegetation growth, consistent with pine tree restoration efforts. </p>
+
+      <script>
+
+        // This script was written by ChatGPT. It is commonly used to detect any changes in the browser size and readjust the sizes of elements on the screen.
+        // Set the width of .row to match the width of the screen
+  
+        // window.addEventListener('resize', function() {
+        //     var row = document.querySelector('.row');
+        //     row.style.width = window.innerWidth/1.05 + 'px';
+        //     // notice that I have divided the width by 1.05, I had to do this because for some reason the images kept extending the row div
+        // });
+
+        // // Trigger the resize event to initially set the width
+        // window.dispatchEvent(new Event('resize'));
+    
+    </script>
+</body>

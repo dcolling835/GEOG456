@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slider Change</title>
+</head>
+<style>
+    body{
+        background-color: black;
+        font-size:20px;
+        color:white
+    }
+    div#image_container{
+        top: 20%;
+        
+    }
+    img{
+        height:80%;
+        position: absolute;
+    }
+
+    #before{
+        z-index: 1;
+        opacity: 1;
+    }
+    #mid{
+        z-index: 2;
+        opacity: 0;
+    }
+    #after{
+        z-index: 3;
+        opacity: 0;
+    }
+    #paragraph{
+    color: aliceblue;
+    width: calc(100vw - 1100px);
+    position: fixed;
+    top: 80px;
+    left: 1000px;
+    background-color: rgb(35, 95, 95, .5);
+    padding: 10px;
+    font-size: 20px;
+}
+
+datalist {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: 400px;
+}
+
+option {
+  padding: 0;
+}
+
+input {
+  width: 400px;
+  margin: 0;
+}
+
+</style>
+<body>
+
+    <label for="year">Year</label><br />
+<input type="range" id="year" name="year" list="tickmarks" value="0" min="0" max="200" oninput="myFunction(this.value)"/>
+<datalist id="tickmarks">
+  <option value="0" label="before"></option>
+  <option value="100" label="mid"></option>
+  <option value="200" label="after"></option>
+</datalist>
+    <div id="paragraph">
+    <p> Yellowstone Lake, located in northwestern Wyoming, is the largest high elevation lake in North America. The lake is in the heart of Yellowstone National Park, one of the most visited attractions in the United States, and is constantly vulnerable to human interference despite being on protected land.
+        I chose to visualize change in this area from 2006 to 2019, specifically to observe forest recovery periods following massive wildfires at the end of the 20th century. The 2006 image acts as a baseline, with the lake's shoreline vegetation relatively intact but burn scars are still prominent in the surrounding area. 
+    The 2015 image shows some forest regrowth, but multiple patches of brown or gray that were not previously there. Upon further investigation, I discovered that 2015 was among peak years for Mountain Pine Beetle infestations across the park, a species that greatly increases tree mortality. I speculate that these patches of 
+brown or gray are likely areas that were impacted by the infestation and died or declined in abundance. Lastly, the 2019 image shows a large amount of vegetation growth, consistent with pine tree restoration efforts. </p>
+</div>
+
+<div id="image_container">
+        <img id="after"  src="YellowstoneLake_2019.png" alt="">
+        <img id="mid"  src="YellowstoneLake_2015.png" alt="">
+        <img id="before" src="YellowstoneLake_2006.png" alt="">
+
+    </div>
+<script>
+    function myFunction(e) {
+        e = parseInt(e);
+        document.getElementById("mid").style.opacity = Math.min(e, 100) / 100;
+        document.getElementById("after").style.opacity = Math.max(e - 100, 0) / 100;
+    }
+    </script>
+</body>
+</html>
